@@ -1,0 +1,47 @@
+apiVersion: apps/v1 
+kind: Deployment 
+metadata: 
+  name: {{ include "weatherapp.fullname" . }}
+  namespace: {{ .Values.global.namespace }}
+  labels: 
+   {{- include "weatherapp.labels" . | nindent 4 }}
+
+spec:
+  strategy: 
+    type: {{ .Values.global.type }}
+    rollingUpdate: 
+      maxUnavailable: {{ .Values.global.strategy.rollingUpdate.maxUnavailable }}
+      maxSurge: {{ .Values.global.strategy.rollingUpdate.maxSurge }}
+  
+  selector: 
+    matchLabels:
+       {{- include "weatherapp.labels" . | nindent 6 }}
+  template: 
+    metadata: 
+       labels: 
+          {{- include "weatherapp.labels" . | nindent 8 }}
+
+    spec: 
+      securityContext: 
+        runAsNonRoot: {{ .Values.global.securityContext.runAsNonRoot }}  
+        runAsUser: {{ .Values.global.securityContext.runAsUser }}
+      
+      containers:
+        - name: {{ .Values.backend.container.name }}
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          ports: 
+            - containerPort: {{ .Values.backend.container.port }}
+          
+          securityContext: 
+            allowPrivilegeEscalation: {{ .Values.global.securityContext.allowPrivilegeEscalation }}
+          
+          resources: 
+            requests:
+              cpu: {{ .Values.backend.resources.requests.cpu }}
+              memory: {{ .Values.backend.resources.requests.memory }}
+            limits: 
+              cpu: {{ .Values.backend.resources.limits.cpu }}
+              memory: {{ .Values.backend.resources.limits.memory }}
+
+          {{- include "weatherapp.probes" . | nindent 10 -}}
+

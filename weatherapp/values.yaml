@@ -1,0 +1,93 @@
+env: prod
+
+global: 
+  namespace: weather-application
+   
+  strategy: 
+    type: RollingUpdate 
+    rollingUpdate: 
+      maxUnavailable: "25%"
+      maxSurge: "25%"
+  
+  securityContext: 
+    runAsNonRoot: true 
+    runAsUser: 1000
+    allowPrivilegeEscalation: false
+
+  
+backend: 
+  name: weather-backend
+  labels: 
+    app: weather-backend
+    tier: backend 
+
+  image: 
+    repository: docdon0007/backend
+    tag: "12"
+    pullPolicy: IfNotPresent 
+
+  hpa: 
+   name: "weather-backend-hpa"
+  
+  container: 
+    name: weather-backend-container 
+    port: 8000
+
+  service: 
+    name: weather-backend-service
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+    
+  autoscaling:
+    enabled: true 
+    minReplicas: 2 
+    maxReplicas: 6 
+    targetUtilizationPercentage: 80 
+
+
+  resources: 
+    requests: 
+      cpu: "200m"
+      memory: "500Mi"
+    limits: 
+      cpu: "500m"
+      memory: "1Gi"
+    
+frontend: 
+  name: weather-frontend 
+  labels: 
+    app: weather-frontend 
+    tier: frontend 
+
+  container: 
+    name: weather-frontend-container
+    port: 80 
+
+  image: 
+    repository: docdon0007/frontend
+    tag: "12"
+    pullPolicy: IfNotPresent 
+  service: 
+    name: weather-frontend-service 
+    type: NodePort 
+    port: 80
+    targetPort: 80
+    nodePort: 30006
+
+ingress: 
+  name: weather-ingress
+  className: nginx
+  useRegex: "true"
+
+frontendIngress: 
+  path: /
+  pathType: Prefix 
+  serviceName: weather-frontend-service 
+  servicePort: 80
+
+backendIngress:
+  path: /api(/|$)(.*)
+  pathType: ImplementationSpecific
+  serviceName: weather-backend-service
+  servicePort: 8000
